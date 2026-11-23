@@ -1,0 +1,89 @@
+
+`timescale 1ns / 1ps
+
+module traffic_light_tb;
+
+    reg clk;
+    reg reset;
+
+    wire ns_red;
+    wire ns_yellow;
+    wire ns_green;
+
+    wire ew_red;
+    wire ew_yellow;
+    wire ew_green;
+
+    // Instantiate DUT
+    traffic_light #(
+        .CLK_FREQ_HZ(1),
+        .GREEN_SECONDS(3),
+        .YELLOW_SECONDS(2)
+    ) uut (
+        .clk(clk),
+        .reset(reset),
+
+        .ns_red(ns_red),
+        .ns_yellow(ns_yellow),
+        .ns_green(ns_green),
+
+        .ew_red(ew_red),
+        .ew_yellow(ew_yellow),
+        .ew_green(ew_green)
+    );
+
+    // Clock generation: 10 ns period
+    always #5 clk = ~clk;
+
+    // Test sequence
+    initial begin
+
+        $dumpfile("traffic_light.vcd");
+        $dumpvars(0, traffic_light_tb);
+
+        clk = 0;
+        reset = 1;
+
+        // Apply reset
+        repeat(2) @(posedge clk);
+        reset = 0;
+
+        // State 1: NS GREEN, EW RED
+        @(negedge clk);
+        $display("STATE 1: NS GREEN, EW RED");
+        if (!(ns_green && ew_red))
+            $fatal(1, "ERROR in State 1");
+
+        // State 2: NS YELLOW, EW RED
+        repeat(3) @(negedge clk);
+        $display("STATE 2: NS YELLOW, EW RED");
+        if (!(ns_yellow && ew_red))
+            $fatal(1, "ERROR in State 2");
+
+        // State 3: NS RED, EW GREEN
+        repeat(2) @(negedge clk);
+        $display("STATE 3: NS RED, EW GREEN");
+        if (!(ns_red && ew_green))
+            $fatal(1, "ERROR in State 3");
+
+        // State 4: NS RED, EW YELLOW
+        repeat(3) @(negedge clk);
+        $display("STATE 4: NS RED, EW YELLOW");
+        if (!(ns_red && ew_yellow))
+            $fatal(1, "ERROR in State 4");
+
+        // Repeat sequence
+        repeat(2) @(negedge clk);
+        $display("STATE 1: NS GREEN, EW RED");
+
+        if (!(ns_green && ew_red))
+            $fatal(1, "ERROR in sequence repetition");
+
+        $display("--------------------------------");
+        $display("ALL TEST CASES PASSED!");
+        $display("--------------------------------");
+
+        $finish;
+    end
+
+endmodule
